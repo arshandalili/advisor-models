@@ -448,28 +448,14 @@ class SkyRLGymGenerator(GeneratorInterface):
         }
 
         if individual_rollout_metrics:
-            # Create wandb table from trajectory data
             trajectory_data = [metrics.get("trajectories") for metrics in individual_rollout_metrics if metrics.get("trajectories")]
-            if trajectory_data:
+            import os
+            if trajectory_data and os.environ.get("WANDB_API_KEY"):
                 import wandb
-                # TODO(tgriggs): Add step to this
-                
                 table = wandb.Table(columns=["prompt", "response", "final_response", "ground_truth", "reward", "initial_reward"])
                 for traj in trajectory_data:
                     prompt_text, response_text, final_response, ground_truth, reward, initial_reward = traj
                     table.add_data(prompt_text, response_text, final_response, ground_truth, reward, initial_reward)
-                
-                # aczhu: additional logging for monte carlo reward estimation
-                # table = wandb.Table(columns=["prompt", "response", "final_response", "ground_truth", "reward", "initial_reward", "individual_rewards"])
-                # for traj in trajectory_data:
-                #     prompt_text, response_text, final_response, ground_truth, reward, initial_reward, individual_rewards = traj
-                #     if type(final_response) == list:
-                #         # monte carlo format
-                #         for i in range(len(final_response)):
-                #             table.add_data(prompt_text, response_text, final_response[i], ground_truth, reward, initial_reward, individual_rewards[i])
-                #     else:
-                #         table.add_data(prompt_text, response_text, final_response, ground_truth, reward, initial_reward, individual_rewards)
-                
                 rollout_metrics["trajectories/traces"] = table
             
         return rollout_metrics

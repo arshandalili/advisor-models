@@ -6,4 +6,5 @@ __pycache__
 logs/
 results/
 tensorboard_log/
-outputs
+outputs/
+ckpts/

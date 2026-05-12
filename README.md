@@ -30,7 +30,7 @@ You will also need to export the following environment variables before running 
 
 ```bash
 export OPENAI_API_KEY=<your key>
-export WANDB_API_KEY=<your key>      # only needed if using wandb logger
+export WANDB_API_KEY=<your key>
 ```
 
 ---

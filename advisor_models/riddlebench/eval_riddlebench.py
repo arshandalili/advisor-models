@@ -94,13 +94,18 @@ class RiddleBenchEvaluator:
     ) -> str:
         if "</think>" in advisor_feedback:
             advisor_feedback = advisor_feedback.split("</think>", 1)[1]
-        advice = extract_advice_section(advisor_feedback)
+        # Send full advisor output (diagnosis + advice) — matches DiagEnv training behavior
+        user_content = (
+            f"{advisor_feedback.strip()}\n\n"
+            "Your previous answer was wrong. Do NOT adjust it — start completely "
+            "from scratch, reason step by step, then give your final answer."
+        )
 
         messages = [
             {"role": "system", "content": STUDENT_SYSTEM_PROMPT},
             {"role": "user", "content": original_question},
             {"role": "assistant", "content": original_response},
-            {"role": "user", "content": advice},
+            {"role": "user", "content": user_content},
         ]
         try:
             kwargs: dict = {"model": self.student_model, "messages": messages, "temperature": 0.0}
@@ -207,6 +212,7 @@ def main():
             served_model_name=served_model_name,
             tensor_parallel_size=args.tensor_parallel_size,
             max_model_len=args.max_model_len,
+            gpu_memory_utilization=args.gpu_memory_utilization,
         )
 
         evaluator = RiddleBenchEvaluator(

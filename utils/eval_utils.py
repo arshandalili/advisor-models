@@ -20,6 +20,7 @@ def setup_vllm_server(
     served_model_name: str = "advisor_model",
     tensor_parallel_size: int = 4,
     max_model_len: int = 32768,
+    gpu_memory_utilization: float = 0.9,
 ) -> subprocess.Popen:
     """Start a vLLM server for the given model.
 
@@ -42,6 +43,7 @@ def setup_vllm_server(
         served_model_name=served_model_name,
         max_model_len=max_model_len,
         tensor_parallel_size=tensor_parallel_size,
+        gpu_memory_utilization=gpu_memory_utilization,
     )
 
     return process
@@ -257,4 +259,10 @@ def add_common_eval_args(parser) -> None:
         type=str,
         default="gpt-4o-mini",
         help="Model to use as student",
+    )
+    parser.add_argument(
+        "--gpu_memory_utilization",
+        type=float,
+        default=0.9,
+        help="Fraction of GPU memory for vLLM (lower when sharing with other processes)",
     )

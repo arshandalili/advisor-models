@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 # Azure OpenAI config (OpenAI-compatible endpoint)
-export OPENAI_API_KEY="${OPENAI_API_KEY:?OPENAI_API_KEY is not set; export your Azure OpenAI key}"
+export OPENAI_API_KEY="${OPENAI_API_KEY:?OPENAI_API_KEY must be set}"
 export API_BASE="${API_BASE:-https://aja7154-december15-pleasedonotre.services.ai.azure.com/api/projects/aja7154-december15-pleasedonotremovemeplease/openai/v1}"
 
 MODEL="${MODEL:-gpt-4o-mini}"

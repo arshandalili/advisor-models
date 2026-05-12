@@ -56,7 +56,7 @@ if [[ -n "$MAX_EXAMPLES" ]]; then
   EXTRA_ARGS="--max_examples $MAX_EXAMPLES"
 fi
 
-.venv/bin/python -m advisor_models.riddlebench.eval_riddlebench \
+SkyRL/skyrl-train/.venv/bin/python -m advisor_models.riddlebench.eval_riddlebench \
   --model_name "$CKPT" \
   --dataset_path "$DATA_FILE" \
   --student_model "$STUDENT" \

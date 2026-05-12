@@ -1,5 +1,5 @@
 #!/bin/bash
-# Full method v2: specificity reward + full advisor output to student + 4 epochs.
+# Full method v2: specificity reward + full advisor output to student. Resume from step 37, run 4 epochs total.
 
 set -euo pipefail
 
@@ -36,13 +36,13 @@ echo "[train] Full advisor — model=$MODEL, gpus=$NUM_GPUS"
   trainer.epochs=4 \
   trainer.eval_batch_size=16 \
   trainer.eval_before_train=false \
-  trainer.eval_interval=72 \
+  trainer.eval_interval=18 \
   trainer.update_epochs_per_batch=1 \
   trainer.train_batch_size=16 \
   trainer.policy_mini_batch_size=4 \
   trainer.micro_forward_batch_size_per_gpu=2 \
   trainer.micro_train_batch_size_per_gpu=2 \
-  trainer.ckpt_interval=-1 \
+  trainer.ckpt_interval=18 \
   trainer.max_prompt_length=8192 \
   generator.sampling_params.max_generate_length=16384 \
   trainer.policy.optimizer_config.lr=1.0e-6 \
@@ -58,5 +58,5 @@ echo "[train] Full advisor — model=$MODEL, gpus=$NUM_GPUS"
   trainer.logger="$LOGGER" \
   trainer.project_name="cse587_advisor_models" \
   trainer.run_name="$RUN_NAME" \
-  trainer.resume_mode=null \
+  trainer.resume_mode=latest \
   trainer.ckpt_path="$CKPT_PATH"

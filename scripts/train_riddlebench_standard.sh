@@ -24,8 +24,8 @@ RUN_NAME="${RUN_NAME:-riddlebench_standard}"
 echo "[train] Standard advisor — model=$MODEL, gpus=$NUM_GPUS"
 
 "$SKYRL_PYTHON" -m advisor_models.riddlebench.main_riddlebench \
-  data.train_data="['$DATA_DIR/train_gpt-4o-mini.parquet']" \
-  data.val_data="['$DATA_DIR/validation_gpt-4o-mini.parquet']" \
+  data.train_data="['$DATA_DIR/train_riddlebench_standard.parquet']" \
+  data.val_data="['$DATA_DIR/validation_riddlebench_standard.parquet']" \
   trainer.algorithm.advantage_estimator="grpo" \
   trainer.policy.model.path="$MODEL" \
   trainer.placement.colocate_all=true \
@@ -43,7 +43,7 @@ echo "[train] Standard advisor — model=$MODEL, gpus=$NUM_GPUS"
   trainer.policy_mini_batch_size=4 \
   trainer.micro_forward_batch_size_per_gpu=2 \
   trainer.micro_train_batch_size_per_gpu=2 \
-  trainer.ckpt_interval=-1 \
+  trainer.ckpt_interval=18 \
   trainer.max_prompt_length=8192 \
   generator.sampling_params.max_generate_length=16384 \
   trainer.policy.optimizer_config.lr=1.0e-6 \

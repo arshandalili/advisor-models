@@ -12,8 +12,6 @@ from typing import List, Optional
 
 import numpy as np
 
-from utils.vllm import start_vllm_server
-
 
 def setup_vllm_server(
     model_path: str,
@@ -32,6 +30,10 @@ def setup_vllm_server(
     Returns:
         Process object for the vLLM server
     """
+    # Lazy: utils/vllm.py is not shipped in the repo; only import it when
+    # this function is actually called (in-process advisor evals).
+    from utils.vllm import start_vllm_server
+
     print(f"Starting vLLM server for model: {model_path}")
     print(f"  Served as: {served_model_name}")
     print(f"  Tensor parallel size: {tensor_parallel_size}")

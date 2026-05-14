@@ -8,6 +8,15 @@ Authors: *Parth Asawa\*, Alan Zhu\*, Abby O'Neill, Matei Zaharia, Alexandros G. 
 
 ## Setup
 
+### Base environment
+
+```bash
+uv venv --python 3.11
+source .venv/bin/activate
+uv pip install vllm
+uv sync
+```
+
 Run ```uv sync``` to install local development dependencies. Activate your virtual environment with ```source .venv/bin/activate```.
 
 To setup the (separate) training virtual environment for all example environments, run the following commands:

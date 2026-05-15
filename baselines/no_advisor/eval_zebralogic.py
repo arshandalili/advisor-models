@@ -1,18 +1,13 @@
-"""ZebraLogic eval, aligned with WildEval/ZeroEval (ZEBRA_GRID prompt + brace-matched JSON extraction).
-
-Reports cell-level accuracy and puzzle-level exact-match per (NxM) size.
-"""
+"""ZebraLogic eval with vLLM batched inference (ZEBRA_GRID prompt + brace-matched JSON extraction)."""
 
 import argparse
 import json
 import os
-from concurrent.futures import ThreadPoolExecutor
 
-import litellm
 import pandas as pd
-from tqdm import tqdm
+from transformers import AutoTokenizer
+from vllm import LLM, SamplingParams
 
-# Official template from ZeroEval/src/templates/ZEBRA_GRID.py
 ZEBRA_GRID = """
 # Example Puzzle
 
@@ -61,7 +56,6 @@ Now please solve the above puzzle. Present your reasoning and solution in the fo
 
 
 def build_prompt(item):
-    """Render the official template, with json_template filled from the gold header."""
     solution = item["solution"]
     columns = solution["header"]
     assert columns[0] == "House"
@@ -73,7 +67,6 @@ def build_prompt(item):
 
 
 def extract_last_complete_json(s):
-    """Brace-matched extraction of the last top-level JSON object. Mirrors ZeroEval."""
     if not s:
         return None
     stack = []
@@ -99,7 +92,6 @@ def extract_last_complete_json(s):
 
 
 def score(pred_obj, solution):
-    """Strict cell match (lowercased + stripped). Returns (cell_correct, cell_total, solved)."""
     columns = solution["header"]
     rows = solution["rows"]
     attrs = columns[1:]
@@ -121,45 +113,19 @@ def score(pred_obj, solution):
     return correct, total, correct == total
 
 
-def run_one(args):
-    item, model, api_base, timeout = args
-    prompt = build_prompt(item)
-    kwargs = {"model": model, "messages": [{"role": "user", "content": prompt}],
-              "temperature": 0.7, "timeout": timeout}
-    if api_base:
-        kwargs["api_base"] = api_base
-    try:
-        r = litellm.completion(**kwargs)
-        text = r.choices[0].message.content or ""
-    except Exception as e:
-        print(f"err id={item['id']}: {e}")
-        text = ""
-    pred = extract_last_complete_json(text)
-    cc, ct, solved = score(pred, item["solution"])
-    return {"id": item["id"], "size": item["size"], "cell_correct": cc, "cell_total": ct,
-            "solved": int(solved), "parsed": int(pred is not None), "raw": text[-2500:]}
-
-
-def evaluate(items, model, api_base, max_workers, timeout):
-    args_list = [(it, model, api_base, timeout) for it in items]
-    results = []
-    with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        for r in tqdm(ex.map(run_one, args_list), total=len(items), desc="ZebraLogic"):
-            results.append(r)
-    return results
-
-
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
-    p.add_argument("--api_base", default=None)
     p.add_argument("--data_file", default="data/zebralogic/grid_mode_test.parquet")
     p.add_argument("--output_dir", default="baselines/no_advisor/results")
     p.add_argument("--output_suffix", default="")
     p.add_argument("--sizes", default="5*6,6*5,6*6")
     p.add_argument("--per_size", type=int, default=40)
-    p.add_argument("--max_workers", type=int, default=32)
-    p.add_argument("--timeout", type=float, default=1800.0)
+    p.add_argument("--temperature", type=float, default=0.7)
+    p.add_argument("--max_tokens", type=int, default=8192)
+    p.add_argument("--tensor_parallel_size", type=int, default=1)
+    p.add_argument("--gpu_memory_utilization", type=float, default=0.9)
+    p.add_argument("--max_model_len", type=int, default=None)
     args = p.parse_args()
 
     df = pd.read_parquet(args.data_file)
@@ -171,7 +137,32 @@ def main():
         print(f"  {s}: {len(sub)} puzzles")
     print(f"Total: {len(items)}")
 
-    results = evaluate(items, args.model, args.api_base, args.max_workers, args.timeout)
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    prompts = [
+        tokenizer.apply_chat_template(
+            [{"role": "user", "content": build_prompt(it)}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        for it in items
+    ]
+
+    llm = LLM(
+        model=args.model,
+        tensor_parallel_size=args.tensor_parallel_size,
+        gpu_memory_utilization=args.gpu_memory_utilization,
+        max_model_len=args.max_model_len,
+    )
+    sampling = SamplingParams(temperature=args.temperature, max_tokens=args.max_tokens)
+    outputs = llm.generate(prompts, sampling)
+
+    results = []
+    for it, out in zip(items, outputs):
+        text = out.outputs[0].text
+        pred = extract_last_complete_json(text)
+        cc, ct, solved = score(pred, it["solution"])
+        results.append({"id": it["id"], "size": it["size"], "cell_correct": cc, "cell_total": ct,
+                        "solved": int(solved), "parsed": int(pred is not None), "raw": text[-2500:]})
 
     by_size = {}
     for r in results:
